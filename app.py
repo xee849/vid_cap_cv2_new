@@ -20,42 +20,24 @@ def detect_animals(image):
             animal_counts[class_name] = animal_counts.get(class_name, 0) + 1
     return annotated_image, animal_counts
 
-def process_video_frames(video_path):
+def process_video_frame(video_path):
     """Process video frame by frame and yield annotated frames and counts."""
     cap = cv2.VideoCapture(video_path)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-    annotated_frames = []
-    frame_interval = int(fps // 5)  # Process 1 frame every 5th of a second
-    counts_summary = {}
+    frame_interval = int(fps // 15)  # Process 1 frame every 5th of a second
 
-    frame_idx = 0
+    frame_count = 0
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
-        frame_idx += 1
-        if frame_idx % frame_interval != 0:
+        frame_count += 1
+        if frame_count % frame_interval != 0:
             continue
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         annotated_frame, animal_counts = detect_animals(frame)
-        annotated_frames.append(cv2.cvtColor(annotated_frame, cv2.COLOR_RGB2BGR))
-        for animal, count in animal_counts.items():
-            counts_summary[animal] = counts_summary.get(animal, 0) + count
+        yield annotated_frame, animal_counts
     cap.release()
-
-    return annotated_frames, counts_summary, fps, (frame_width, frame_height)
-
-def save_annotated_video(frames, output_path, fps, frame_size):
-    """Save a list of frames as a video."""
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
-    out = cv2.VideoWriter(output_path, fourcc, fps, frame_size)
-    for frame in frames:
-        out.write(frame)
-    out.release()
 
 def plot_animal_counts(animal_counts):
     """Generate a bar chart for animal counts."""
@@ -81,6 +63,7 @@ def main():
     st.title("Species Identification and Monitoring Terrestrial")
 
     # Sidebar for user input
+    
     st.sidebar.header("Upload Options")
     upload_type = st.sidebar.radio("Select Input Type", ["Video", "Image"])
 
@@ -95,20 +78,30 @@ def main():
             st.sidebar.header("Detection Progress")
             progress_bar = st.sidebar.progress(0)
 
-            # Process the video and save annotated frames
-            annotated_frames, animal_counts, fps, frame_size = process_video_frames(video_path)
+            # Main layout: video display and chart
+            video_placeholder = st.empty()  # Placeholder for the video
+            chart_placeholder = st.empty()  # Placeholder for the chart below video
 
-            # Save annotated frames as a new video
-            output_video_path = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False).name
-            save_annotated_video(annotated_frames, output_video_path, fps, frame_size)
+            fps = cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FPS)  # Get frame rate
+            total_frames = int(cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FRAME_COUNT))
 
-            # Display the annotated video in Streamlit
-            st.video(output_video_path)
+            # Process and display video frame by frame
+            for idx, (annotated_frame, animal_counts) in enumerate(process_video_frame(video_path)):
+                # Update progress bar
+                progress_bar.progress((idx + 1) / total_frames)
 
-            # Plot the animal counts
+                # Display the video frame in a specific window size
+                video_placeholder.image(
+                    annotated_frame, 
+                    channels="RGB", 
+                    use_column_width=False, 
+                    width=640
+                )
+
+            # Display the chart after the video
             chart = plot_animal_counts(animal_counts)
             if chart:
-                st.altair_chart(chart)
+                chart_placeholder.altair_chart(chart)
 
     elif upload_type == "Image":
         image_file = st.sidebar.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
@@ -127,153 +120,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# from ultralytics import YOLO
-# import numpy as np
-# import tempfile
-# import pandas as pd
-# import streamlit as st
-# import altair as alt
-# import cv2
-
-# # Load YOLOv8 model
-# model = YOLO('best.pt')
-
-# def detect_animals(image):
-#     """Detect animals in the given image and return the annotated image and counts."""
-#     animal_counts = {}
-#     results = model(image)
-#     annotated_image = results[0].plot()  # Plot bounding boxes
-#     for result in results:
-#         for class_index in result.boxes.cls:
-#             class_name = model.names[int(class_index)]  # Map class index to class name
-#             animal_counts[class_name] = animal_counts.get(class_name, 0) + 1
-#     return annotated_image, animal_counts
-
-# def process_video_frame(video_path):
-#     """Process video frame by frame and yield annotated frames and counts."""
-#     cap = cv2.VideoCapture(video_path)
-#     fps = int(cap.get(cv2.CAP_PROP_FPS))
-#     frame_interval = int(fps // 5)  # Process 1 frame every 5th of a second
-
-#     frame_count = 0
-#     while cap.isOpened():
-#         ret, frame = cap.read()
-#         if not ret:
-#             break
-#         frame_count += 1
-#         if frame_count % frame_interval != 0:
-#             continue
-#         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#         annotated_frame, animal_counts = detect_animals(frame)
-#         yield annotated_frame, animal_counts
-#     cap.release()
-
-# def plot_animal_counts(animal_counts):
-#     """Generate a bar chart for animal counts."""
-#     if animal_counts:
-#         data = pd.DataFrame(list(animal_counts.items()), columns=["Animal", "Count"])
-#         chart = (
-#             alt.Chart(data)
-#             .mark_bar()
-#             .encode(
-#                 x="Animal:O",
-#                 y="Count:Q",
-#                 color="Animal:O",
-#                 tooltip=["Animal", "Count"]
-#             )
-#             .properties(width=400, height=300)
-#         )
-#         return chart
-#     else:
-#         return None
-
-# def main():
-#     st.sidebar.image("animalsimage.jpg", use_column_width=True)
-#     st.title("Species Identification and Monitoring Terrestrial")
-
-#     # Sidebar for user input
-    
-#     st.sidebar.header("Upload Options")
-#     upload_type = st.sidebar.radio("Select Input Type", ["Video", "Image"])
-
-#     if upload_type == "Video":
-#         video_file = st.sidebar.file_uploader("Upload a video file", type=["mp4", "mov", "avi"])
-#         if video_file:
-#             # Save video file to a temporary location
-#             tfile = tempfile.NamedTemporaryFile(delete=False)
-#             tfile.write(video_file.read())
-#             video_path = tfile.name
-
-#             st.sidebar.header("Detection Progress")
-#             progress_bar = st.sidebar.progress(0)
-
-#             # Main layout: video display and chart
-#             video_placeholder = st.empty()  # Placeholder for the video
-#             chart_placeholder = st.empty()  # Placeholder for the chart below video
-
-#             fps = cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FPS)  # Get frame rate
-#             total_frames = int(cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FRAME_COUNT))
-
-#             # Process and display video frame by frame
-#             for idx, (annotated_frame, animal_counts) in enumerate(process_video_frame(video_path)):
-#                 # Update progress bar
-#                 progress_bar.progress((idx + 1) / total_frames)
-
-#                 # Display the video frame in a specific window size
-#                 video_placeholder.image(
-#                     annotated_frame, 
-#                     channels="RGB", 
-#                     use_column_width=False, 
-#                     width=640
-#                 )
-
-#             # Display the chart after the video
-#             chart = plot_animal_counts(animal_counts)
-#             if chart:
-#                 chart_placeholder.altair_chart(chart)
-
-#     elif upload_type == "Image":
-#         image_file = st.sidebar.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
-#         if image_file:
-#             file_bytes = np.asarray(bytearray(image_file.read()), dtype=np.uint8)
-#             image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-#             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-#             annotated_image, animal_counts = detect_animals(image)
-
-#             st.image(annotated_image, channels="RGB", use_column_width=True, caption="Detected Animals")
-
-#             chart = plot_animal_counts(animal_counts)
-#             if chart:
-#                 st.altair_chart(chart)
-
-# if __name__ == "__main__":
-#     main()
 
 
 
