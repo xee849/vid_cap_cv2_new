@@ -24,7 +24,7 @@ def process_video_frame(video_path):
     """Process video frame by frame and yield annotated frames and counts."""
     cap = cv2.VideoCapture(video_path)
     fps = int(cap.get(cv2.CAP_PROP_FPS))
-    frame_interval = int(fps // 15)  # Process 1 frame every 5th of a second
+    frame_interval = int(fps // 20)  # Process 1 frame every 5th of a second
 
     frame_count = 0
     while cap.isOpened():
