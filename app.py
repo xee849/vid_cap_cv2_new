@@ -116,6 +116,10 @@ def main():
             annotated_image, animal_counts = detect_animals(image)
 
             st.image(annotated_image, channels="RGB", use_column_width=True, caption="Detected Animals")
+            if animal_counts:
+                st.subheader("Animal Counts:")
+                for animal, count in animal_counts.items():
+                    st.write(f"{animal}: {count}")
 
             chart = plot_animal_counts(animal_counts)
             if chart:
