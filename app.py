@@ -4,7 +4,7 @@ from skimage import io
 from io import BytesIO
 import numpy as np
 import pandas as pd
-model = YOLO("best.pt")
+model = YOLO("best3.pt")
 
 
 def detect_animals(image):
@@ -23,6 +23,14 @@ def main():
     st.title("Species Identification and Monitoring Terrestrial")
     st.sidebar.header("Upload Image File")
     image_file = st.sidebar.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
+    animal_spec_name = {
+        "buffalo": "Bubalus bubalis",
+        "elephant": "Elephantidae",
+        "jellyfish": "Scyphozoa",
+        "rhino": "Rhinocerotidae",
+        "zebra": "Equus quagga"
+                }
+    
     if image_file:
         file_bytes = np.asarray(bytearray(image_file.read()), dtype=np.uint8)
         image = io.imread(BytesIO(file_bytes))
@@ -34,9 +42,10 @@ def main():
             st.image(ano_image,caption="Detected Image",use_container_width=True,output_format="auto",channels="RGB")
         animalname = list(animal_count.keys())
         animalcount = list(animal_count.values())
+        species_names = [animal_spec_name.get(animal, "Unknown") for animal in animalname]
         col11,col22 = st.columns(2)
         with col11:
-            st.dataframe({"Animal Name":animalname,"Animal Count":animalcount},)
+            st.dataframe({"Animal Name": animalname,"Species Name": species_names,"Animal Count": animalcount})
         with col22:
             st.bar_chart({"Animal Name":animalname,"Animal Count":animalcount},x="Animal Name",y="Animal Count",width=20)
         st.write("-----------------------------------------------")
