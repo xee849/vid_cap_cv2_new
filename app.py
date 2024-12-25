@@ -3,7 +3,6 @@ from ultralytics import YOLO
 from skimage import io
 from io import BytesIO
 import numpy as np
-import pandas as pd
 model = YOLO("best3.pt")
 
 
@@ -19,9 +18,8 @@ def detect_animals(image):
     return annotated_image, animal_counts
 
 def main():
-    st.sidebar.image("animalsimage.jpg",use_container_width=True)
-    st.title("Species Identification and Monitoring Terrestrial")
-    st.sidebar.header("Upload Image File")
+    st.sidebar.image("sublime.png",use_container_width=True)
+    st.header("SPECIES IDENTIFICATION AND MONITORING TERRESTRIAL",divider=True)
     image_file = st.sidebar.file_uploader("Upload an image file", type=["jpg", "jpeg", "png"])
     animal_spec_name = {
         "buffalo": "Bubalus bubalis",
@@ -35,11 +33,13 @@ def main():
         file_bytes = np.asarray(bytearray(image_file.read()), dtype=np.uint8)
         image = io.imread(BytesIO(file_bytes))
         ano_image,animal_count = detect_animals(image)
-        col1,col2 = st.columns(2)
+        col1,col2 = st.columns(2,border=True)
         with col1:
-            st.image(image_file,caption="Orignal Image",use_container_width=True,output_format="auto",channels="RGB")
+            st.subheader("Orignal Image")
+            st.image(image_file,use_container_width=True,output_format="auto",channels="RGB")
         with col2:
-            st.image(ano_image,caption="Detected Image",use_container_width=True,output_format="auto",channels="RGB")
+            st.subheader("Detected Image")
+            st.image(ano_image,use_container_width=True,output_format="auto",channels="RGB")
         animalname = list(animal_count.keys())
         animalcount = list(animal_count.values())
         species_names = [animal_spec_name.get(animal, "Unknown") for animal in animalname]
